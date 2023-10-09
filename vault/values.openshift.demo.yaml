@@ -1,0 +1,58 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+# These overrides are appropriate defaults for deploying this chart on OpenShift
+
+global:
+  # As we are running openshift...
+  openshift: true
+  # TLS for end-to-end encrypted transport
+  tlsDisable: true
+  # PodSecurityPolicy already handle by design byy openshift itself
+  psp:
+    enable: false
+  # Not the focus of the demo for now
+  serverTelemetry:
+    # Enable integration with the Prometheus Operator
+    # See the top level serverTelemetry section below before enabling this feature.
+    prometheusOperator: false
+
+injector:
+  image:
+    repository: "registry.connect.redhat.com/hashicorp/vault-k8s"
+    tag: "1.2.1-ubi"
+
+  agentImage:
+    repository: "registry.connect.redhat.com/hashicorp/vault"
+    tag: "1.14.0-ubi"
+
+server:
+  image:
+    repository: "registry.connect.redhat.com/hashicorp/vault"
+    tag: "1.14.0-ubi"
+  # OpenShift only - create a route to expose the vault pod service
+  # By default the created route will be of type passthrough
+  # Useless as we do not want our pods to be able to be contacted from outside the cluster
+  route:
+    enabled: false
+
+  # See https://www.vaultproject.io/docs/configuration/storage/index.html to know more
+  dataStorage:
+    enabled: true
+    size: 10Gi
+    # TBD
+    storageClass: null
+  auditStorage:
+    enabled: false
+
+ui:
+  enabled: true
+
+csi:
+  enabled: false
+
+serverTelemetry:
+  serviceMonitor:
+    enabled: false
+  prometheusRules:
+    enabled: false

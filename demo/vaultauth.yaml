@@ -1,0 +1,14 @@
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultAuth
+metadata:
+  namespace: vso-example
+  name: example
+spec:
+  vaultConnectionRef: example
+  # Method to use when authenticating to Vault.
+  method: kubernetes
+  # Mount to use when authenticating to auth method.
+  mount: kubernetes
+  kubernetes:
+    role: demo
+    serviceAccount: default

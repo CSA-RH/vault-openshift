@@ -1,0 +1,33 @@
+{{/*
+Copyright (c) HashiCorp, Inc.
+SPDX-License-Identifier: MPL-2.0
+*/}}
+
+{{ template "vault.mode" . }}
+{{- if ne .mode "external" }}
+{{- template "vault.uiEnabled" . -}}
+{{- if .uiEnabled -}}
+
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ template "vault.fullname" . }}-ui
+  namespace: {{ .Release.Namespace }}
+  labels:
+    helm.sh/chart: {{ include "vault.chart" . }}
+    app.kubernetes.io/name: {{ include "vault.name" . }}-ui
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+  {{- template "vault.ui.annotations" . }}
+spec:
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+  to:
+    kind: Service
+    name: {{ template "vault.fullname" . }}-ui
+    weight: 100
+  wildcardPolicy: None
+{{- end -}}
+{{- end }}
