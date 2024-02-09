@@ -33,7 +33,6 @@ Note that there is no operator for Vault available for now so the recommended ap
 To install `Vault`, we will go for the easy way by using the cli. However, you can use whichever automation way to deploy it such as `ArgoCD` or automate it in any CD pipeline.
 
 ```bash
-TODO: do this
 oc new-project vault
 # helm install [flags] [NAME] [CHART]
 helm install -f vault/values.openshift.yaml vault ./vault 
@@ -149,27 +148,45 @@ The CRD objects you need to create are:
     - Have a single source of truth for the secrets (inside Vault)
     - Use native Secret object so we do not have to migrate all our existing `Deployment` yaml file
 The spec requires: a `VaultAuth` name, the 'mount' of the secret engine, the 'type' of the secret engine, the 'path' where the secret is located inside the secret engine, the 'refresh time' (basically how often do we need to check if the secret has been updated inside `Vault`) and, of course, the destination of the `Secret`.
-4. Two nginx `Pod` which will mount each secret into a specific path. This is a pretty classic usage of secrets. Note that we could also have used environement variables, poiting directly to a specific key inside the `Secret`.
 
 ```bash
-oc create -f demo/
+# Create the vso-example project
+oc apply -f demo/project.yaml
+oc apply -f demo/vaultconnection.yaml
+oc apply -f demo/vaultauth.yaml
+# The next two yaml files contains two resources
+oc apply -f demo/vaultstaticsecrets.yaml
 ```
 
 ## Demo 1 - secret synchronisation
 
-1. We can list the secret and read them though the UI or the cli. You should find two secrets available for you, called `foo` and `bar`. The content should be the same as what we wrote inside Vault: `oc get secret {foo,bar} -o yaml`
-2. You should find two pods as well, called `foo` and `bar`. If you exec on each of them you should find your secrets as files under the path `/etc/secrets`: `oc rsh foo`.
-3. Let's jump to vault and edit the secret `foo` from `key1=value1` and  `secretpasswordfoo=12345` to `key1=value2`, `secretpassword=12345` and `newsecret=newvalue`. Basically we want to: modify a secret key, modify a secret value and insert a new one. Before validate the changes inside the Vault UI, run `watch oc get pod,secret`.
-4. Note that the secret have been synced but the pod did not restart. This is the behaviour we expect. Delete and re create the pod, the new values are now injected to the pod.
+1. The next command will create two nginx `Pod` which will mount each secret into a specific path. This is a pretty classic usage of secrets. Note that we could also have used environement variables, poiting directly to a specific key inside the `Secret`.
+```bash
+oc apply -f demo/pods.yaml
+```
+2. We can list the secret from Vault and read them though the UI or the cli. You should find two secrets available inside the vso-example project, called `foo` and `bar`. The content should be the same as what we wrote inside Vault: `oc get secret {foo,bar} -o yaml`
+3. You can also check the two pods called `foo` and `bar`. If you exec on each of them you should find your secrets as files under the path `/etc/secrets`: `oc rsh foo`.
+4. Let's jump to vault and edit the secret `foo` from `key1=value1` and  `secretpasswordfoo=12345` to `key1=value2`, `secretpassword=12345` and `newsecret=newvalue`. Basically we want to: modify a secret key, modify a secret value and insert a new one. Before validate the changes inside the Vault UI, run `watch oc get pod,secret`.
+5. Note that the secret have been synced but the pod did not restart. This is the behaviour we expect. Delete and re create the pod, the new values are now injected to the pod: 
+```bash 
+oc delete -f demo/pods.yaml && sleep 5 && oc apply -f demo/pods.yaml
+``` 
 
 ## Demo 2 - secret injection
 
 This demo is based on the [official documentation](https://developer.hashicorp.com/vault/tutorials/kubernetes/kubernetes-sidecar#kubernetes-sidecar).
 
 1. You can deploy the Deployment `deployment-orgchart-inject-demo.yaml` after checking the annotations and the content inside Vault.
+```bash
+oc apply -f demo/deployment-orgchart-inject-demo.yaml
+```
 2. Once deployed, you can check the logs from the init-container and also exec to the pod to check the paths `/vault/secrets`
-3. You can deploy the Deployment `deployment-orgchart-inject-demo-template.yaml` which does pretty much the same thing, but instead it allows you to templatise a bit your file. Note that in both scenarios, no `Secret` are created, the secret are "injected" inside the container. 
-4. /!\ If the `Pods` run with a `ServiceAccount` different from the ones defined in the `Vault Kubernetes` authentication role, then they will *NOT* be able to access the secrets defined at that path. /!\ To demonstrate this, you can deploy the `orgchart-inject-demo-failing.yaml` resources and check the logs: `oc logs -f <pod-name> -c vault-agent-init`
-5. /!\ If the `Pods` run in a `Namespace/Project` different from the ones defined in the `Vault Kubernetes` authentication role, then they will not be *NOT* be able to access the secrets defined at that path. /!\ To demonstrate this, you can try to deploy almost the same resource in another `Namespace/Project` without doing any modification on the Vault side. This will result in a failure. Trying to fix it might be a good exercise, same as restrict a few rights about the SA, etc.
-6. Last but not least, again, modifying the secret inside `Vault` will not result in re deploying the `Pods`. If you want to achieve this goal, please consider to visit [this link regarding Reloader](https://github.com/stakater/Reloader) as a possible alternative solution (not supported). Note that you need to be aware of the consequences that such a configuration might do. My personnal suggestion would be to run a bunch of tests to be able to understand any scenarios in case of a failure (vault restart, vault unavailable, sync of the secrets failed, pods restart with wrong configuration, rollback the secret, etc.)
+3. You can deploy the Deployment `deployment-orgchart-inject-demo-template.yaml` which does pretty much the same thing, but instead it allows you to templatise a bit your file. Note that in both scenarios, no `Secret` are created, the secret are injected inside the container instead. 
+```bash
+oc apply -f demo/deployment-orgchart-inject-demo-template.yaml
+```
 
+A few notes:
+- /!\ If the `Pods` run with a `ServiceAccount` different from the ones defined in the `Vault Kubernetes` authentication role, then they will *NOT* be able to access the secrets defined at that path. /!\ To demonstrate this, you can deploy the `orgchart-inject-demo-failing.yaml` resources and check the logs: `oc logs -f <pod-name> -c vault-agent-init`
+- /!\ If the `Pods` run in a `Namespace/Project` different from the ones defined in the `Vault Kubernetes` authentication role, then they will not be *NOT* be able to access the secrets defined at that path. /!\ To demonstrate this, you can try to deploy almost the same resource in another `Namespace/Project` without doing any modification on the Vault side. This will result in a failure. Trying to fix it might be a good exercise, same as restrict a few rights about the SA, etc.
+- Last but not least, again, modifying the secret inside `Vault` will not result in re deploying the `Pods`. If you want to achieve this goal, please consider to visit [this link regarding Reloader](https://github.com/stakater/Reloader) as a possible alternative solution (not supported). Note that you need to be aware of the consequences that such a configuration might do. My personnal suggestion would be to run a bunch of tests to be able to understand any scenarios in case of a failure (vault restart, vault unavailable, sync of the secrets failed, pods restart with wrong configuration, rollback the secret, etc.)
