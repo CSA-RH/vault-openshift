@@ -1,0 +1,11 @@
+# https://developer.hashicorp.com/vault/docs/platform/k8s/vso/api-reference#vaultconnection
+
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultConnection
+metadata:
+  namespace: vso-example
+  name: example
+spec:
+  # address to the Vault server
+  # vault release in the vault namespace
+  address: http://vault.vault.svc.cluster.local:8200

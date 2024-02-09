@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: not-configured-sa
+  namespace: vso-example
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orgchart-demo-failing
+  namespace: vso-example
+spec:
+  selector:
+    matchLabels:
+      app: orgchart-demo-failing
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: "demo"
+        # agent-inject-secret-FILEPATH prefixes the path of the file
+        # database-config.txt will be written to the /vault/secrets directory
+        # The value is the path to the secret defined in Vault.
+        vault.hashicorp.com/agent-inject-secret-database-config.txt: "secretstorename/data/database"
+      labels:
+        app: orgchart-demo-failing
+    spec:
+      serviceAccountName: not-configured-sa
+      containers:
+        - name: orgchart
+          image: jweissig/app:0.0.1

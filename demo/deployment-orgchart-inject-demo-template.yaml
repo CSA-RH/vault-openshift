@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orgchart-demo-template
+  namespace: vso-example
+spec:
+  selector:
+    matchLabels:
+      app: orgchart-demo-template
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/agent-inject-status: "update"
+        vault.hashicorp.com/role: "demo"
+        vault.hashicorp.com/agent-inject-secret-database-config.txt: "secretstorename/data/database"
+        # agent-inject-template-FILEPATH prefixes the file path.
+        # The value defines the Vault Agent template to apply to the secret's data.
+        vault.hashicorp.com/agent-inject-template-database-config.txt: |
+          {{- with secret "secretstorename/data/database" -}}
+          postgresql://{{ .Data.data.username }}:{{ .Data.data.password }}@postgres:5432/wizard
+          {{- end -}}
+      labels:
+        app: orgchart-demo-template
+    spec:
+      serviceAccountName: default
+      containers:
+        - name: orgchart
+          image: jweissig/app:0.0.1
