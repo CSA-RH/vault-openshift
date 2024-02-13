@@ -1,3 +1,8 @@
+# To indentify the appropriate values in this yaml
+# you can use the ui, and then check the appropriate
+# info with those command:
+# oc get packagemanifests -n openshift-marketplace | grep <keyword>
+# oc describe packagemanifests <operator_name> -n openshift-marketplace
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
@@ -9,4 +14,4 @@ spec:
   name: vault-secrets-operator
   source: certified-operators
   sourceNamespace: openshift-marketplace
-  startingCSV: vault-secrets-operator.v0.3.1
+  startingCSV: vault-secrets-operator.v0.4.3
