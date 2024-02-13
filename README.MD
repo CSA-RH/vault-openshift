@@ -8,8 +8,6 @@ This demo is based on [this article](https://www.hashicorp.com/blog/vault-secret
 ## Prerequisites
 - helm 3
 - oc
-- Project *vault* exists
-- Project *vso-example* exists
 
 ## Vault's installation
 First of all, here is how you gather the latest version of `Vault`:
@@ -21,24 +19,21 @@ helm search repo hashicorp/vault -l
 helm fetch hashicorp/vault
 # The next command will give you the root vault repository - commited, in my case, it was verison 0-27-0
 tar -xvf vault-0.27.0.tgz
-# The only modification made is the addition of the resource "vault/templates/ui-route.yaml"
-# /!\/!\/!\ Note that this is a very bad practice, the UI should not be exposed to the internet /!\/!\/!\ 
-# The goal was to give an internet access to the demo platform so the participants could play around and test it. 
-# In production, if you need to access to the ui, please use 
-# the port-forwarding approach instead: 'oc port-forward pod/vault-0 8200:8200` and never expose the UI to the internet!
+# If you need to access to the ui, please use the port-forwarding approach
+# oc port-forward pod/vault-0 8200:8200 and never expose the UI to the internet!
 ```
 
-Note that there is no operator for Vault available for now so the recommended approach is to install it though `Helm`.
+Note that there is no operator for `Vault` available for now, so the recommended approach is to install it though `Helm`.
 
 To install `Vault`, we will go for the easy way by using the cli. However, you can use whichever automation way to deploy it such as `ArgoCD` or automate it in any CD pipeline.
 
 ```bash
 oc new-project vault
 # helm install [flags] [NAME] [CHART]
-helm install -f vault/values.openshift.yaml vault ./vault 
+helm install -i -f vault/values.openshift.yaml vault ./vault
 ```
 
-The application will still stay in a non ready state (probe will fail) until you unseal the vault. Let's do this:
+The application will still stay in a non ready state (probe will fail) until you init and unseal the vault. Let's do this:
 
 ``` bash
 # Exec to the vault pod
@@ -92,7 +87,7 @@ vault kv get -mount secretstorename foo
 vault kv get secretstorename/foo
 ``` 
 
-Then, we need to create a kind of "link" to allow a specific `ServiceAccount` from somewhere to access something. 
+Then, we need to allow a specific `ServiceAccount` from somewhere to access the vault.
 Here is a simple policy to grant access to any secret under the "secretstorename" path we just created and populated.
 
 /!\ Note that this is for a demo purpose, please adapt the policies to your own strategies. A common strategy is to give only access to what a specific microservice and/or environement needs. Always try to apply the security principle of least privilege. /!\
@@ -124,7 +119,8 @@ vault write auth/userpass/users/jeremy password="jeremy" policies="demo"
 vault read auth/userpass/users/jeremy
 ```
 
-At this point, let's go to the UI and see a bit the different things we created.
+=> At this point, let's go to the UI and see a bit the different things we created.
+=> Use the root token first and do a tour of the UI, then use the "jeremy" userpass account to see the difference
 
 ## Vault Secrets Operator's installation
 The operator we will install is called [vault-secrets-operator](https://github.com/hashicorp/vault-secrets-operator).
