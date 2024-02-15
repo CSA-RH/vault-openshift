@@ -8,6 +8,7 @@ This demo is based on [this article](https://www.hashicorp.com/blog/vault-secret
 ## Prerequisites
 - helm 3
 - oc
+- vault (optional)
 
 ## Vault's installation
 First of all, here is how you gather the latest version of `Vault`:
@@ -27,10 +28,12 @@ Note that there is no operator for `Vault` available for now, so the recommended
 
 To install `Vault`, we will go for the easy way by using the cli. However, you can use whichever automation way to deploy it such as `ArgoCD` or automate it in any CD pipeline.
 
+To custom the installation thought helm, you can check all the values available [here](https://github.com/hashicorp/vault-helm/blob/main/values.yaml).
+
 ```bash
 oc new-project vault
 # helm install [flags] [NAME] [CHART]
-helm install -i -f vault/values.openshift.yaml vault ./vault
+helm upgrade -i -f vault/values.openshift.yaml vault ./vault
 ```
 
 The application will still stay in a non ready state (probe will fail) until you init and unseal the vault. Let's do this:
@@ -55,7 +58,8 @@ vault operator unseal -tls-skip-verify ${KEYS}
 ## Vault's configuration
 
 To make things possible, we need to configure the link between `Kubernetes` and `Vault`.
-All the commands must be run on the vault pod.
+All the commands must be run on the vault pod. You can also forward the vault API with the port-forward command and operate with the vault client.
+To install vault on your system, please refer to [the official documentation](https://developer.hashicorp.com/vault/tutorials/getting-started/getting-started-install).
 Run `oc rsh vault-0` to get a shell or you can still use the terminal tab inside the console.
 
 ``` bash
