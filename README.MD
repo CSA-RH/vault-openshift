@@ -22,6 +22,8 @@ helm fetch hashicorp/vault
 tar -xvf vault-0.27.0.tgz
 # If you need to access to the ui, please use the port-forwarding approach
 # oc port-forward pod/vault-0 8200:8200 and never expose the UI to the internet!
+# you can also export the vault address by using
+# export VAULT_ADDR='http://127.0.0.1:8200' and then run your vault command localy
 ```
 
 Note that there is no operator for `Vault` available for now, so the recommended approach is to install it though `Helm`.
